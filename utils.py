@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import torch
 import torch.nn
+import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import albumentations
 import albumentations.pytorch
