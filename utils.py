@@ -9,7 +9,7 @@ import albumentations
 import albumentations.pytorch
 import itertools
 
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -64,13 +64,16 @@ class cassava_dataset_albu(torch.utils.data.Dataset):
         pack = (image, label)
         return pack
 
-def run_train(x, y, net, optimizer):
+def run_train(x, y, net, optimizer, loss_fun):
     x = x.float().to(device)
     y = y.long().to(device)
 
     optimizer.zero_grad()
     pred = net.train()(x)
-    loss = F.cross_entropy(pred, y, reduction='mean')
+    if loss_fun is None:
+        loss = F.cross_entropy(pred, y, reduction='mean')
+    else:
+        loss = loss_fun(pred, y)
     with torch.no_grad():
         acc = (pred.argmax(dim=-1) == y).float().mean()
     loss.backward()
@@ -78,21 +81,25 @@ def run_train(x, y, net, optimizer):
 
     return loss, acc
     
-def run_eval(x, y, net, optimizer):
+def run_eval(x, y, net, optimizer, loss_fun):
     x = x.float().to(device)
     y = y.long().to(device)
 
     with torch.no_grad():
         pred = net.eval()(x)
-        loss = F.cross_entropy(pred, y, reduction='mean')
+        if loss_fun is None:
+            loss = F.cross_entropy(pred, y, reduction='mean')
+        else:
+            loss = loss_fun(pred, y)
         acc = (pred.argmax(dim=-1) == y).float().mean()
     return loss, acc
 
-def run_epoch(dataset, dataloader, train, net, optimizer, epoch=None, writer=None, args=None):
+def run_epoch(dataset, dataloader, train, net, optimizer, epoch=None, writer=None, args=None, loss_fun=None):
     total_loss = 0.0
     total_acc = 0.0
-    n_data = len(dataloader) * dataloader.batch_size 
-    
+    n_data = len(dataloader)*dataloader.batch_size
+    if not train:
+        n_data = len(dataloader.dataset)
     pbar = tqdm(total=n_data, position=0, leave=False)
     
     mode = 'Train' if train else 'Test'
@@ -100,9 +107,8 @@ def run_epoch(dataset, dataloader, train, net, optimizer, epoch=None, writer=Non
             str(epoch).zfill(len(str(args.n_epochs))), args.n_epochs)
     
     for i, data in enumerate(dataloader):
-
-        loss, acc = run_train(data[0], data[1], net, optimizer) if train else \
-            run_eval(data[0], data[1], net, optimizer)
+        loss, acc = run_train(data[0], data[1], net, optimizer, loss_fun) if train else \
+            run_eval(data[0], data[1], net, optimizer, loss_fun)
         '''
         if train and writer is not None:
             assert(epoch is not None)
@@ -124,12 +130,15 @@ def run_epoch(dataset, dataloader, train, net, optimizer, epoch=None, writer=Non
     return mean_loss, mean_acc
 
 def run_epoch_train_and_test(
-    train_dataset, train_dataloader, test_dataset, test_dataloader, net, 
-    optimizer, args, epoch=None, writer=None):
+    train_dataset, train_dataloader, test_dataset, test_dataloader, net,
+    optimizer, args, epoch=None, writer=None, loss=None):
+
     train_loss, train_acc = run_epoch(
-        train_dataset, train_dataloader, train=args.train, net=net, optimizer=optimizer, epoch=epoch, writer=None, args=args)
+        train_dataset, train_dataloader, train=args.train, net=net, optimizer=optimizer, 
+                                    epoch=epoch, writer=None, args=args, loss_fun=loss)
     test_loss, test_acc = run_epoch(
-        test_dataset, test_dataloader, train=False, net=net, optimizer=optimizer, epoch=epoch, writer=None, args=args)
+        test_dataset, test_dataloader, train=False, net=net, optimizer=optimizer, 
+                                    epoch=epoch, writer=None, args=args, loss_fun=loss)
 
     if writer is not None:
 
