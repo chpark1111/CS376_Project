@@ -30,6 +30,23 @@ def validation_sampler(root, n_data, n_val, csv):
 
     return train_idx, valid_idx
 
+def imbalanced_validation_sampler(root, n_data, n_val, csv):
+    # assert ratio < 1, "ratio should be lower than 1"
+    randper = torch.randperm(n_data).numpy()
+    label_count = [50, 95, 100, 615, 140]
+    valid_idx = []
+    train_idx = []
+    for i in range(n_data):
+        idx = randper[i]
+        label = csv.iloc[idx, 1]
+        if not label_count[label]:
+            train_idx.append(idx)
+            continue
+        valid_idx.append(idx)
+        label_count[label] -= 1
+
+    return train_idx, valid_idx
+
 class cassava_dataset_albu(torch.utils.data.Dataset):
     def __init__(self, root, csv=None, train_test="train", idx=None, transform=None):
         self.root = root

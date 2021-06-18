@@ -42,7 +42,7 @@ class CompositeScheduler(SamplingScheduler):
         self.val = 0.5*math.cos(epoch/self.max_epoch * math.pi) + 0.5
 
 class LossScheduler(SamplingScheduler):
-    def __init__(self, max_epoch, init_val=1, p=0.4, epsilon=0.1):
+    def __init__(self, max_epoch, init_val=1, p=0.3, epsilon=0.1):
         super().__init__(max_epoch, init_val=init_val+epsilon)
         
         self.epsilon = epsilon

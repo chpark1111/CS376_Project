@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class TEA_Loss(nn.Module):
-    def __init__(self, k=12, margin=1.25, minor_ratio = 0.2, easy_criterion=0.95):
+    def __init__(self, k=2, margin=1.25, minor_ratio = 0.4, easy_criterion=0.9):
         super(TEA_Loss, self).__init__()
         self.margin = margin
         self.ranking_loss = nn.MarginRankingLoss(margin=margin, reduction='sum')
