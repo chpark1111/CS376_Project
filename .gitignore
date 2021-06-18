@@ -3,3 +3,4 @@ test.py
 .ipynb_checkpoints
 outputs/
 __pycache__/
+.vscode/
